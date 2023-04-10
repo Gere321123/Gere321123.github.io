@@ -1,0 +1,89 @@
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+  
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+
+    height: 100vh;
+  }
+  
+  h1 {
+    text-align: center;
+    margin-top: 0;
+  }
+  
+  .block {
+    width: 30px;
+    height: 30px;
+    margin: 1px;
+    cursor: pointer;
+    z-index: 5;
+    border-radius: 5px;
+  }
+  
+  .block.green {
+    background-color: green;
+  }
+  .block.yellow {
+    background-color: yellow;
+  }
+  .block.blue {
+    background-color: blue;
+  }
+  .block.red {
+    background-color: red;
+  }
+  
+  
+  .selected {
+    border: 2px solid black;
+  }
+  h1 {
+    font-family: 'Roboto', sans-serif;
+    font-size: 48px;
+    font-weight: bold;
+    text-align: center;
+    margin-top: 0;
+    padding-top: 20px;
+  }
+  .player {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+  
+  
+  #board {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 576px;
+    height: 350px;
+    left: 50%;
+    top: 50.5%;
+    display: flex;
+    flex-wrap: wrap;
+    z-index: 5;
+    transform: translate(-50%, -50%);
+  }
+  
+  canvas {
+    display: block;
+    margin: 0 auto;
+    z-index: 3;
+    border: 2px solid rgb(0, 0, 0);
+    box-sizing: border-box;
+    background-color: rgb(75, 75, 75);
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+  }
+  
+  
