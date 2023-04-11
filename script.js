@@ -1,7 +1,7 @@
 class Game {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
-    this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+        this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
         this.tileSize = 20;
         this.colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00'];
         this.setCanvasSize();
@@ -49,42 +49,81 @@ class Game {
             }
         }
     }
-
-
-    // Mozgassa a játékost
-    movePlayer(keyCode) {
-        this.ctx.clearRect(this.playerX, this.playerY, this.tileSize, this.tileSize);
-    
-        if (keyCode === 'a') {
-            this.playerX -= this.tileSize;
-            //  console.log("A key pressed");
-        } 
-        if (keyCode === 'd') {
-            this.playerX += this.tileSize;
-            // console.log("D key pressed");
+// Új metódus a kiválasztott kocka frissítéséhez a játékos X koordinátájához
+    updateSelectedTilePosition() {
+        if (this.selectedTile !== null) {
+            this.ctx.clearRect(this.selectedTile.x, this.playerY - this.tileSize, this.tileSize, this.tileSize);
+            this.selectedTile.x = this.playerX;
+            this.copySelectedTile(this.selectedTile);
         }
-        if (keyCode === 'w') {
-            //  console.log("W key pressed");
+    }
+    // Mozgassa a játékost
+// Javított movePlayer metódus
+movePlayer(keyCode) {
+    this.ctx.clearRect(this.playerX, this.playerY, this.tileSize, this.tileSize);
+    if (this.selectedTile !== null) {
+        this.ctx.clearRect(this.selectedTile.x, this.playerY - this.tileSize, this.tileSize, this.tileSize);
+    }
+
+    if (keyCode === 'a') {
+        if (this.playerX - this.tileSize >= 0) {
+            this.playerX -= this.tileSize;
+        }
+    } 
+    if (keyCode === 'd') {
+        if (this.playerX + this.tileSize < this.canvas.width) {
+            this.playerX += this.tileSize;
+        }
+    }
+    if (keyCode === 'w') {
+        if (this.selectedTile !== null) {
+            this.placeTileBack();
+        } else {
             this.selectTile();
             if (this.selectedTile !== null) {
                 console.log("Selected tile:", this.selectedTile);
-                // Törölje a kiválasztott csempét a vászonról
                 this.ctx.clearRect(this.selectedTile.x, this.selectedTile.y, this.tileSize, this.tileSize);
             } else {  
                 console.log("No tile selected");
             }
         }
-        
-        const closestTile = { x: this.playerX, y: this.playerY };
-        this.copySelectedTile(closestTile);
-        
-        // Ne hagyja, hogy a játékos elhagyja a vásznat
-        this.playerX = Math.max(0, Math.min(this.playerX, this.canvas.width - this.tileSize));
-    
-        // Újrarajzolja a játékost a vászonra
-        this.ctx.drawImage(this.playerImage, this.playerX, this.playerY, this.tileSize, this.tileSize);
     }
-    
+
+    this.updateSelectedTilePosition();
+
+    this.ctx.drawImage(this.playerImage, this.playerX, this.playerY, this.tileSize, this.tileSize);
+}
+
+placeTileBack() {
+    const colIndex = Math.floor(this.playerX / this.tileSize);
+    let y = this.playerY - 2 * this.tileSize;
+    let foundTile = false;
+
+    for (; y >= 0; y -= this.tileSize) {
+        const tileColor = this.ctx.getImageData(colIndex * this.tileSize, y, 1, 1).data;
+        const isTransparent = tileColor[3] === 0;
+
+        if (!isTransparent) {
+            foundTile = true;
+            break;
+        }
+    }
+
+    if (foundTile) {
+        this.ctx.putImageData(
+            this.ctx.getImageData(this.selectedTile.x, this.selectedTile.y, this.tileSize, this.tileSize),
+            colIndex * this.tileSize,
+            y + this.tileSize
+        );
+    } else {
+        this.ctx.putImageData(
+            this.ctx.getImageData(this.selectedTile.x, this.selectedTile.y, this.tileSize, this.tileSize),
+            colIndex * this.tileSize,
+            0
+        );
+    }
+    this.selectedTile = null;
+} 
     
         // Válassza ki a legközelebbi nem átlátszó kockát a játékos Y koordinátájában
         selectTile() {
@@ -92,44 +131,58 @@ class Game {
             const colIndex = Math.floor(this.playerX / this.tileSize);
             let closestTile = null;
             let closestTileDistance = Infinity;
-        
+    
             const playerTopY = this.playerY - this.tileSize;
-        
+    
             for (let y = playerTopY; y >= 0; y -= this.tileSize) {
                 const tileColor = this.ctx.getImageData(colIndex * this.tileSize, y, 1, 1).data;
                 const isTransparent = tileColor[3] === 0;
-        
+    
                 if (!isTransparent) {
                     const distance = Math.abs(this.playerY - y);
                     if (distance < closestTileDistance) {
                         closestTileDistance = distance;
-                        closestTile = { x: colIndex * this.tileSize, y };
+                        closestTile = { x: colIndex * this.tileSize, y, color: `rgba(${tileColor[0]}, ${tileColor[1]}, ${tileColor[2]}, 1)` };
                     }
                 }
             }
-        
-            console.log(`Selected tile: ${closestTile}`);
-        
-            // Hozzáadunk egy új metódust a kiválasztott kocka másolatának létrehozásához
-            this.copySelectedTile(closestTile);
-        
-            // Frissítjük az előzőleg kiválasztott kockát a jelenleg kiválasztottra
+    
             this.selectedTile = closestTile;
         }
+    
+        placeTileBack() {
+            const colIndex = Math.floor(this.playerX / this.tileSize);
+            let y = this.playerY - 2 * this.tileSize;
+            let foundTile = false;
+    
+            for (; y >= 0; y -= this.tileSize) {
+                const tileColor = this.ctx.getImageData(colIndex * this.tileSize, y, 1, 1).data;
+                const isTransparent = tileColor[3] === 0;
+    
+                if (!isTransparent) {
+                    foundTile = true;
+                    break;
+                }
+            }
+    
+            if (foundTile) {
+                this.ctx.fillStyle = this.selectedTile.color;
+                this.ctx.fillRect(colIndex * this.tileSize, y + this.tileSize, this.tileSize, this.tileSize);
+            } else {
+                this.ctx.fillStyle = this.selectedTile.color;
+                this.ctx.fillRect(colIndex * this.tileSize, 0, this.tileSize, this.tileSize);
+            }
+            this.selectedTile = null;
+        }
+    
         
         // Új metódus a kiválasztott kocka másolatának létrehozásához
         copySelectedTile(tile) {
-            this.ctx.drawImage(this.canvas,
-                tile.x, tile.y, this.tileSize, this.tileSize, // forrás kocka
-                tile.x, this.playerY - this.tileSize, this.tileSize, this.tileSize // cél kocka
-            );
+            if (tile !== null) {
+                this.ctx.fillStyle = tile.color;
+                this.ctx.fillRect(tile.x, this.playerY - this.tileSize, this.tileSize, this.tileSize);
+            }
         }
-        
-        
-        
-        
-        
-    
 }
 $(document).ready(function() {
     const game = new Game('gameCanvas');
