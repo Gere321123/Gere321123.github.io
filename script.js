@@ -54,57 +54,81 @@ class Game {
     // Mozgassa a játékost
     movePlayer(keyCode) {
         this.ctx.clearRect(this.playerX, this.playerY, this.tileSize, this.tileSize);
-        
+    
         if (keyCode === 'a') {
             this.playerX -= this.tileSize;
-          //  console.log("A key pressed");
+            //  console.log("A key pressed");
         } 
         if (keyCode === 'd') {
             this.playerX += this.tileSize;
-           // console.log("D key pressed");
+            // console.log("D key pressed");
         }
         if (keyCode === 'w') {
-          //  console.log("W key pressed");
+            //  console.log("W key pressed");
             this.selectTile();
             if (this.selectedTile !== null) {
                 console.log("Selected tile:", this.selectedTile);
                 // Törölje a kiválasztott csempét a vászonról
                 this.ctx.clearRect(this.selectedTile.x, this.selectedTile.y, this.tileSize, this.tileSize);
-            }else{  
+            } else {  
                 console.log("No tile selected");
             }
         }
-
+        
+        const closestTile = { x: this.playerX, y: this.playerY };
+        this.copySelectedTile(closestTile);
+        
         // Ne hagyja, hogy a játékos elhagyja a vásznat
         this.playerX = Math.max(0, Math.min(this.playerX, this.canvas.width - this.tileSize));
-
+    
         // Újrarajzolja a játékost a vászonra
         this.ctx.drawImage(this.playerImage, this.playerX, this.playerY, this.tileSize, this.tileSize);
     }
+    
+    
         // Válassza ki a legközelebbi nem átlátszó kockát a játékos Y koordinátájában
         selectTile() {
             const tileCols = Math.floor(this.canvas.width / this.tileSize);
+            const colIndex = Math.floor(this.playerX / this.tileSize);
             let closestTile = null;
             let closestTileDistance = Infinity;
         
-            for (let x = 0; x < tileCols; x++) {
-                const tileColor = this.ctx.getImageData(x * this.tileSize, this.playerY - this.tileSize, 1, 1).data;
+            const playerTopY = this.playerY - this.tileSize;
+        
+            for (let y = playerTopY; y >= 0; y -= this.tileSize) {
+                const tileColor = this.ctx.getImageData(colIndex * this.tileSize, y, 1, 1).data;
                 const isTransparent = tileColor[3] === 0;
         
-                console.log("Tile color:", tileColor);
-                console.log("Is transparent:", isTransparent);
-        
                 if (!isTransparent) {
-                    const distance = Math.abs(this.playerX - x * this.tileSize);
+                    const distance = Math.abs(this.playerY - y);
                     if (distance < closestTileDistance) {
                         closestTileDistance = distance;
-                        closestTile = { x: x * this.tileSize, y: this.playerY - this.tileSize };
+                        closestTile = { x: colIndex * this.tileSize, y };
                     }
                 }
             }
         
+            console.log(`Selected tile: ${closestTile}`);
+        
+            // Hozzáadunk egy új metódust a kiválasztott kocka másolatának létrehozásához
+            this.copySelectedTile(closestTile);
+        
+            // Frissítjük az előzőleg kiválasztott kockát a jelenleg kiválasztottra
             this.selectedTile = closestTile;
         }
+        
+        // Új metódus a kiválasztott kocka másolatának létrehozásához
+        copySelectedTile(tile) {
+            this.ctx.drawImage(this.canvas,
+                tile.x, tile.y, this.tileSize, this.tileSize, // forrás kocka
+                tile.x, this.playerY - this.tileSize, this.tileSize, this.tileSize // cél kocka
+            );
+        }
+        
+        
+        
+        
+        
     
 }
 $(document).ready(function() {
