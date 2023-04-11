@@ -4,8 +4,6 @@ class SobicsGame {
     this.board = [];
     this.colors = ["red", "blue", "green", "yellow"];
     this.boardSize = { width: 18, height: 10 };
-    this.selectedBlock = null;
-    this.linePos = canvas.width;
     this.playerPos = [9, 9];
     this.playerImage = new Image();
     this.playerImage.src = "img/player.png";
@@ -13,6 +11,7 @@ class SobicsGame {
     this.newCycle = false;
   }
 
+  // Játék indítása
   start() {
     this.createBoard(3);
     this.renderBoard();
@@ -21,19 +20,20 @@ class SobicsGame {
   }
 
   createBoard(x) {
-    if (x === 3) {
-      for (let i = 0; i < this.boardSize.height; i++) {
-        let row = [];
-        for (let j = 0; j < this.boardSize.width; j++) {
-          let color = "transparent";
-          if (i < 3) {
-            color = this.getRandomColor();
-          }
-          row.push({ color: color, x: j, y: i });
+    for (let i = 0; i < this.boardSize.height; i++) {
+      let row = [];
+      for (let j = 0; j < this.boardSize.width; j++) {
+        let color = "transparent";
+        if (i < 3 || x !== 3) {
+          color = this.getRandomColor();
         }
-        this.board.push(row);
+        row.push({ color: color, x: j, y: i });
       }
-    } else {
+      this.board.push(row);
+    }
+  
+    if (x === 1) {
+      // Hívjuk meg a shiftGrabbedBlockDown() függvényt itt, hogy frissüljön a kiválasztott kocka pozíciója
       this.shiftGrabbedBlockDown();
       for (let i = this.boardSize.height - 2; i >= 0; i--) {
         for (let j = 0; j < this.boardSize.width; j++) {
@@ -46,14 +46,33 @@ class SobicsGame {
         firstRow.push({ color: color, x: j, y: this.boardSize.height - 1 });
       }
       this.board[0] = firstRow;
-    }
-  }
-  shiftGrabbedBlockDown() {
-    if (this.grabbedBlock !== null) {
-      this.grabbedBlock.y--;
+     // console.log("Kocka felkerül", this.grabbedBlock.y, "ez meg a rendes erteke a matrixnak", this.grabbedBlock);
     }
   }
   
+
+
+  shiftGrabbedBlockDown() {
+    if (this.grabbedBlock !== null) {
+      const blockAbove = this.board[this.grabbedBlock.y - 1][this.grabbedBlock.x];
+      if (blockAbove.color === 'transparent' || this.newCycle) {
+        // Eltároljuk a régi pozíciót
+        const oldY = this.grabbedBlock.y;
+        
+        // Frissítjük a grabbedBlock y pozícióját
+        this.grabbedBlock.y--;
+  
+        // Frissítjük a this.board mátrixot az új pozícióban
+        this.board[this.grabbedBlock.y][this.grabbedBlock.x] = this.grabbedBlock;
+  
+        // Beállítjuk az előző pozícióban lévő kockát átlátszóra
+        this.board[oldY][this.grabbedBlock.x] = { color: 'transparent', x: this.grabbedBlock.x, y: oldY };
+      }
+    }
+  }
+  
+
+
 
   getRandomColor() {
     return this.colors[Math.floor(Math.random() * this.colors.length)];
@@ -64,7 +83,7 @@ class SobicsGame {
     for (let i = 0; i < this.boardSize.height; i++) {
       for (let j = 0; j < this.boardSize.width; j++) {
         let block = this.board[i][j];
-  
+
         if (i === this.playerPos[1] && j === this.playerPos[0]) {
           boardHtml += `<div class="block" data-x="${block.x}" data-y="${block.y}"><img src="${this.playerImage.src}" class="player"></div>`;
         } else {
@@ -77,28 +96,6 @@ class SobicsGame {
   }
 
   bindEvents() {
-    $(document).on("click", ".block", (event) => {
-      let block = $(event.currentTarget);
-      if (this.selectedBlock) {
-        let selectedX = this.selectedBlock.data("x");
-        let selectedY = this.selectedBlock.data("y");
-        let blockX = block.data("x");
-        let blockY = block.data("y");
-
-        if (
-          (selectedX === blockX && Math.abs(selectedY - blockY) === 1) ||
-          (selectedY === blockY && Math.abs(selectedX - blockX) === 1)
-        ) {
-          this.swapBlocks(this.selectedBlock, block);
-        }
-        this.selectedBlock.removeClass("selected");
-        this.selectedBlock = null;
-      } else {
-        this.selectedBlock = block;
-        this.selectedBlock.addClass("selected");
-      }
-    });
-
     $(document).keydown((event) => {
       if (event.key === 'a' || event.key === 'd') {
         this.movePlayer(event.key);
@@ -141,24 +138,30 @@ class SobicsGame {
           break;
         }
       }
-      if (!foundColorBlock) {
-        return;
+      if (foundColorBlock) {
+        this.renderBoardWithGrabbedBlock();
       }
     }
-    this.renderBoardWithGrabbedBlock();
+    console.log("Kiválasztott kocka megváltozott", this.grabbedBlock);
   }
-  
+
+
+
 
   renderBoardWithGrabbedBlock() {
     this.renderBoard();
-  
+
     if (this.grabbedBlock) {
       const blockX = this.playerPos[0];
       const blockY = this.playerPos[1] - 1;
       const blockElement = $(`.block[data-x="${blockX}"][data-y="${blockY}"]`);
       blockElement.css("background-color", this.grabbedBlock.color);
+      // Frissítjük a grabbedBlock pozícióját
+      this.grabbedBlock.x = blockX;
+      this.grabbedBlock.y = blockY;
     }
   }
+
 
   swapBlocks(block1, block2) {
     let x1 = block1.data("x");
@@ -184,6 +187,13 @@ class SobicsGame {
       this.shiftGrabbedBlockDown();
       this.newCycle = false;
     }
+
+    // Frissítjük a grabbedBlock pozícióját, ha van kiválasztott kocka
+    if (this.grabbedBlock) {
+      this.grabbedBlock.x = this.playerPos[0];
+      this.grabbedBlock.y = this.playerPos[1] - 1;
+    }
+
     // Update grabbedBlock if necessary
     if (this.grabbedBlock && this.grabbedBlock.x === oldX && this.grabbedBlock.y === oldY) {
       this.grabbedBlock.x = this.playerPos[0];
@@ -198,6 +208,7 @@ class SobicsGame {
     }
 
     this.renderBoard();
+    console.log("Játékos mozog", key, "irányba, játékos pozíció:", this.playerPos, " A Kivalasztott kocka helye:", this.grabbedBlock);
   }
 
   animateLine() {
@@ -222,15 +233,19 @@ class SobicsGame {
           this.shiftGrabbedBlockDown();
         }
         this.renderBoardWithGrabbedBlock();
+        console.log("Piros csík végigért, új ciklus kezdődik");
+      } else {
+        this.newCycle = false;
       }
+
 
       window.requestAnimationFrame(drawLine);
     };
 
     window.requestAnimationFrame(drawLine);
   }
-  
-  
+
+
 }
 
 $(document).ready(function () {
