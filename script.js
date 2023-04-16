@@ -26,61 +26,7 @@ class Game {
             this.ctx.drawImage(this.playerImage, this.playerX, this.playerY, this.tileSize, this.tileSize);
         };
     }
-    countMatchingNeighbors(x, y, color) {
-        let visited = new Set();
-        let stack = [{ x, y }];
-        console.log('Checking neighbors for', x, y, color);
-        let count = 0;
-    
-        while (stack.length > 0) {
-            let current = stack.pop();
-            let key = `${current.x},${current.y}`;
-    
-            if (!visited.has(key)) {
-                visited.add(key);
-                let neighbors = this.getNeighbors(current.x, current.y);
-    
-                for (let neighbor of neighbors) {
-                    let neighborColor = this.getTileColor(neighbor.x, neighbor.y);
-                    console.log("Neighbor:", neighbor, "Color:", neighborColor, "Matching:", neighborColor === color); // Új sor a szomszédos cellák adatainak kiírására
-    
-                    if (neighborColor === color) {
-                        count++;
-                        stack.push(neighbor);
-                    }
-                }
-            }
-        }
-    
-        return count;
-    }
-    
-    getNeighbors(x, y) {
-        const neighbors = [
-            { x: x - this.tileSize, y },
-            { x: x + this.tileSize, y },
-            { x, y: y - this.tileSize },
-            { x, y: y + this.tileSize },
-        ];
-    
-        return neighbors.filter(neighbor => neighbor.x >= 0 && neighbor.x < this.canvas.width && neighbor.y >= 0 && neighbor.y < this.canvas.height);
-    }
-    getTileColor(x, y) {
-        const tileColor = this.ctx.getImageData(x, y, 1, 1).data;
-        let color = `rgba(${tileColor[0]}, ${tileColor[1]}, ${tileColor[2]}, ${tileColor[3] / 255})`;
-    
-        // Konvertálja az rgba színt hex színkóddá
-        let hexColor = "#" + ((1 << 24) + (tileColor[0] << 16) + (tileColor[1] << 8) + tileColor[2]).toString(16).slice(1).toUpperCase();
-        
-        // Ellenőrizze, hogy a hexColor értéke megtalálható-e a colors tömbben
-        if (this.colors.includes(hexColor)) {
-            return hexColor;
-        } else {
-            return color;
-        }
-    }
-    
-        
+
 
     // Véletlenszerűen válasszon egy színt a színlistából
     randomColor() {
@@ -152,7 +98,7 @@ placeTileBack() {
     const colIndex = Math.floor(this.playerX / this.tileSize);
     let y = this.playerY - 2 * this.tileSize;
     let foundTile = false;
-    console.log('Placing tile back at', colIndex * this.tileSize, y + this.tileSize);
+
     for (; y >= 0; y -= this.tileSize) {
         const tileColor = this.ctx.getImageData(colIndex * this.tileSize, y, 1, 1).data;
         const isTransparent = tileColor[3] === 0;
@@ -176,10 +122,8 @@ placeTileBack() {
             0
         );
     }
-    const matchingNeighbors = this.countMatchingNeighbors(colIndex * this.tileSize, y + this.tileSize, this.selectedTile.color);
-    console.log("Matching neighbors:", matchingNeighbors);
     this.selectedTile = null;
-}
+} 
     
         // Válassza ki a legközelebbi nem átlátszó kockát a játékos Y koordinátájában
         selectTile() {
@@ -205,40 +149,69 @@ placeTileBack() {
     
             this.selectedTile = closestTile;
         }
-    
+        checkNeighborColors(tile) {
+            const neighbors = [
+                { x: tile.x, y: tile.y - this.tileSize }, // Top
+                { x: tile.x, y: tile.y + this.tileSize }, // Bottom
+                { x: tile.x - this.tileSize, y: tile.y }, // Left
+                { x: tile.x + this.tileSize, y: tile.y }, // Right
+            ];
+        
+            let sameColorNeighbors = 0;
+        
+            neighbors.forEach(neighbor => {
+                if (
+                    neighbor.x >= 0 &&
+                    neighbor.x < this.canvas.width &&
+                    neighbor.y >= 0 &&
+                    neighbor.y < this.canvas.height
+                ) {
+                    const neighborColorData = this.ctx.getImageData(neighbor.x, neighbor.y, 1, 1).data;
+                    const neighborColor = `rgba(${neighborColorData[0]}, ${neighborColorData[1]}, ${neighborColorData[2]}, 1)`;
+        
+                    if (neighborColor === tile.color) {
+                        console.log(`Same color neighbor at x: ${neighbor.x}, y: ${neighbor.y}`);
+                        sameColorNeighbors++;
+                    } else {
+                        console.log(`Different color neighbor at x: ${neighbor.x}, y: ${neighbor.y}`);
+                    }
+                }
+            });
+        
+            console.log(`Total same color neighbors: ${sameColorNeighbors}`);
+        }
         placeTileBack() {
             const colIndex = Math.floor(this.playerX / this.tileSize);
             let y = this.playerY - 2 * this.tileSize;
             let foundTile = false;
-            console.log('Placing tile back at', colIndex * this.tileSize, y + this.tileSize);
+    
             for (; y >= 0; y -= this.tileSize) {
                 const tileColor = this.ctx.getImageData(colIndex * this.tileSize, y, 1, 1).data;
                 const isTransparent = tileColor[3] === 0;
-        
+    
                 if (!isTransparent) {
                     foundTile = true;
                     break;
                 }
             }
-        
+    
             if (foundTile) {
-                this.ctx.putImageData(
-                    this.ctx.getImageData(this.selectedTile.x, this.selectedTile.y, this.tileSize, this.tileSize),
-                    colIndex * this.tileSize,
-                    y + this.tileSize
-                );
+                this.ctx.fillStyle = this.selectedTile.color;
+                this.ctx.fillRect(colIndex * this.tileSize, y + this.tileSize, this.tileSize, this.tileSize);
             } else {
-                this.ctx.putImageData(
-                    this.ctx.getImageData(this.selectedTile.x, this.selectedTile.y, this.tileSize, this.tileSize),
-                    colIndex * this.tileSize,
-                    0
-                );
+                this.ctx.fillStyle = this.selectedTile.color;
+                this.ctx.fillRect(colIndex * this.tileSize, 0, this.tileSize, this.tileSize);
             }
-            const matchingNeighbors = this.countMatchingNeighbors(colIndex * this.tileSize, y + this.tileSize, this.selectedTile.color);
-            console.log("Matching neighbors:", matchingNeighbors); // Hívás a countMatchingNeighbors függvényhez
+            if (foundTile) {
+                this.ctx.fillStyle = this.selectedTile.color;
+                this.ctx.fillRect(colIndex * this.tileSize, y + this.tileSize, this.tileSize, this.tileSize);
+            } else {
+                this.ctx.fillStyle = this.selectedTile.color;
+                this.ctx.fillRect(colIndex * this.tileSize, 0, this.tileSize, this.tileSize);
+            }
+            this.checkNeighborColors(this.selectedTile); // Hívja a checkNeighborColors metódust
             this.selectedTile = null;
         }
-        
     
         
         // Új metódus a kiválasztott kocka másolatának létrehozásához
