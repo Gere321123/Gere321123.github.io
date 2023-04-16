@@ -149,37 +149,53 @@ placeTileBack() {
     
             this.selectedTile = closestTile;
         }
-        checkNeighborColors(tile) {
-            const neighbors = [
-                { x: tile.x, y: tile.y - this.tileSize }, // Top
-                { x: tile.x, y: tile.y + this.tileSize }, // Bottom
-                { x: tile.x - this.tileSize, y: tile.y }, // Left
-                { x: tile.x + this.tileSize, y: tile.y }, // Right
-            ];
-        
-            let sameColorNeighbors = 0;
-        
-            neighbors.forEach(neighbor => {
-                if (
-                    neighbor.x >= 0 &&
-                    neighbor.x < this.canvas.width &&
-                    neighbor.y >= 0 &&
-                    neighbor.y < this.canvas.height
-                ) {
-                    const neighborColorData = this.ctx.getImageData(neighbor.x, neighbor.y, 1, 1).data;
-                    const neighborColor = `rgba(${neighborColorData[0]}, ${neighborColorData[1]}, ${neighborColorData[2]}, 1)`;
-        
-                    if (neighborColor === tile.color) {
-                        console.log(`Same color neighbor at x: ${neighbor.x}, y: ${neighbor.y}`);
-                        sameColorNeighbors++;
-                    } else {
-                        console.log(`Different color neighbor at x: ${neighbor.x}, y: ${neighbor.y}`);
+        checkConnectedSameColorTiles(tile) {
+            let sameColorTiles = [tile]; // Ide adja hozzá a kezdeti kockát
+            let visited = new Set();
+    
+            const findConnectedSameColorTiles = (currentTile) => {
+                const neighbors = [
+                    { x: currentTile.x, y: currentTile.y - this.tileSize }, // Top
+                    { x: currentTile.x, y: currentTile.y + this.tileSize }, // Bottom
+                    { x: currentTile.x - this.tileSize, y: currentTile.y }, // Left
+                    { x: currentTile.x + this.tileSize, y: currentTile.y }, // Right
+                ];
+    
+                neighbors.forEach(neighbor => {
+                    const neighborKey = `${neighbor.x},${neighbor.y}`;
+    
+                    if (
+                        neighbor.x >= 0 &&
+                        neighbor.x < this.canvas.width &&
+                        neighbor.y >= 0 &&
+                        neighbor.y < this.canvas.height &&
+                        !visited.has(neighborKey)
+                    ) {
+                        const neighborColorData = this.ctx.getImageData(neighbor.x, neighbor.y, 1, 1).data;
+                        const neighborColor = `rgba(${neighborColorData[0]}, ${neighborColorData[1]}, ${neighborColorData[2]}, 1)`;
+    
+                        visited.add(neighborKey);
+    
+                        if (neighborColor === currentTile.color) {
+                            sameColorTiles.push(neighbor);
+                            findConnectedSameColorTiles(neighbor);
+                        }
                     }
-                }
-            });
+                });
+            };
+    
+             // Tile-t hozzáadjuk a visited listához, hogy ne kerüljön ismételt vizsgálatra.
+        visited.add(`${tile.x},${tile.y}`);
+        findConnectedSameColorTiles(tile);
+
+    
+        console.log(`Total connected same color tiles (including indirect): ${sameColorTiles.length}`);
+        sameColorTiles.forEach(connectedTile => {
+            console.log(`Connected same color tile at x: ${connectedTile.x}, y: ${connectedTile.y}`);
+        });
+    }
         
-            console.log(`Total same color neighbors: ${sameColorNeighbors}`);
-        }
+        
         placeTileBack() {
             const colIndex = Math.floor(this.playerX / this.tileSize);
             let y = this.playerY - 2 * this.tileSize;
@@ -202,14 +218,7 @@ placeTileBack() {
                 this.ctx.fillStyle = this.selectedTile.color;
                 this.ctx.fillRect(colIndex * this.tileSize, 0, this.tileSize, this.tileSize);
             }
-            if (foundTile) {
-                this.ctx.fillStyle = this.selectedTile.color;
-                this.ctx.fillRect(colIndex * this.tileSize, y + this.tileSize, this.tileSize, this.tileSize);
-            } else {
-                this.ctx.fillStyle = this.selectedTile.color;
-                this.ctx.fillRect(colIndex * this.tileSize, 0, this.tileSize, this.tileSize);
-            }
-            this.checkNeighborColors(this.selectedTile); // Hívja a checkNeighborColors metódust
+            this.checkConnectedSameColorTiles(this.selectedTile); // Ezt kell módosítani
             this.selectedTile = null;
         }
     
