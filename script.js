@@ -2,7 +2,7 @@ class Game {
     constructor(canvasId) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
-        this.tileSize = 50;
+        this.tileSize = 20;
         this.colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00'];
         this.setCanvasSize();
         this.loadPlayerImage();
@@ -149,64 +149,44 @@ placeTileBack() {
     
             this.selectedTile = closestTile;
         }
-        checkConnectedSameColorTiles(tile) {
-            let sameColorTiles = [tile];
-            let visited = new Set();
-            const findConnectedSameColorTiles = (currentTile) => {
-              const neighbors = [
-                { x: currentTile.x, y: currentTile.y - this.tileSize },
-                { x: currentTile.x, y: currentTile.y + this.tileSize },
-                { x: currentTile.x - this.tileSize, y: currentTile.y },
-                { x: currentTile.x + this.tileSize, y: currentTile.y },
-              ];
-              neighbors.forEach(neighbor => {
-                const neighborKey = `${neighbor.x},${neighbor.y}`;
-                if (
-                  neighbor.x >= 0 &&
-                  neighbor.x < this.canvas.width &&
-                  neighbor.y >= 0 &&
-                  neighbor.y < this.canvas.height &&
-                  !visited.has(neighborKey)
-                ) {
-                  const neighborColorData = this.ctx.getImageData(neighbor.x, neighbor.y, 1, 1).data;
-                  const neighborColor = `rgba(${neighborColorData[0]}, ${neighborColorData[1]}, ${neighborColorData[2]}, 1)`;
-                  visited.add(neighborKey);
-                  if (neighborColor === currentTile.color) {
-                    sameColorTiles.push(neighbor);
-                    findConnectedSameColorTiles(neighbor);
-                  }
+        countConnectedTiles(x, y, color, processed) {
+            const directions = [
+                { dx: -1, dy: 0 },
+                { dx: 1, dy: 0 },
+                { dx: 0, dy: -1 },
+                { dx: 0, dy: 1 },
+            ];
+    
+            let connectedTiles = 1;
+            processed.push({ x, y });
+    
+            for (const dir of directions) {
+                const newX = x + dir.dx * this.tileSize;
+                const newY = y + dir.dy * this.tileSize;
+    
+                if (newX >= 0 && newX < this.canvas.width && newY >= 0 && newY < this.canvas.height) {
+                    if (processed.some(tile => tile.x === newX && tile.y === newY)) {
+                        continue;
+                    }
+    
+                    const neighborColor = this.ctx.getImageData(newX, newY, 1, 1).data;
+                    const neighborColorString = `rgba(${neighborColor[0]}, ${neighborColor[1]}, ${neighborColor[2]}, 1)`;
+    
+                    if (color === neighborColorString) {
+                        connectedTiles += this.countConnectedTiles(newX, newY, color, processed);
+                    }
                 }
-              });
-            };
-            visited.add(`${tile.x},${tile.y}`);
-            findConnectedSameColorTiles(tile);
-          
-            const matchingTiles = [];
-            visited.forEach(key => {
-              const [x, y] = key.split(",");
-              const colorData = this.ctx.getImageData(parseInt(x), parseInt(y), 1, 1).data;
-              const color = `rgba(${colorData[0]}, ${colorData[1]}, ${colorData[2]}, 1)`;
-              if (color === tile.color) {
-                matchingTiles.push({ x: parseInt(x), y: parseInt(y) });
-              }
-            });
-          
-            console.log(`Total connected same color tiles (including indirect): ${matchingTiles.length}`);
-            if (matchingTiles.length > 3) {
-                matchingTiles.forEach(connectedTile => {
-                  this.ctx.clearRect(connectedTile.x, connectedTile.y, this.tileSize, this.tileSize);
-                });
-              }
-              
-          }
-          
-          
-          
-          
-          
-          
-        
-        
+            }
+    
+            return connectedTiles;
+        }
+    
+        countMatchingNeighbors(x, y, color) {
+            const processed = [];
+            const connectedTiles = this.countConnectedTiles(x, y, color, processed);
+            return connectedTiles - 1; // Levonjuk az eredeti kockát, mivel azt nem számítjuk szomszédnak
+        }
+    
         placeTileBack() {
             const colIndex = Math.floor(this.playerX / this.tileSize);
             let y = this.playerY - 2 * this.tileSize;
@@ -229,8 +209,23 @@ placeTileBack() {
                 this.ctx.fillStyle = this.selectedTile.color;
                 this.ctx.fillRect(colIndex * this.tileSize, 0, this.tileSize, this.tileSize);
             }
-            this.checkConnectedSameColorTiles({ x: colIndex * this.tileSize, y: foundTile ? y + this.tileSize : 0, color: this.selectedTile.color }); // Ezt kell módosítani
-        this.selectedTile = null;
+        
+            const placedTileX = colIndex * this.tileSize;
+            const placedTileY = foundTile ? y + this.tileSize : 0;
+        
+            const matchingNeighbors = this.countMatchingNeighbors(placedTileX, placedTileY, this.selectedTile.color);
+            console.log("Matching neighbors:", matchingNeighbors);
+        
+            if (matchingNeighbors >= 3) {
+                const processed = [];
+                this.countConnectedTiles(placedTileX, placedTileY, this.selectedTile.color, processed);
+        
+                for (const tile of processed) {
+                    this.ctx.clearRect(tile.x, tile.y, this.tileSize, this.tileSize);
+                }
+            }
+        
+            this.selectedTile = null;
         }
     
         
