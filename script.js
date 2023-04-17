@@ -255,42 +255,47 @@ movePlayer(keyCode) {
             }
         }
 }
-// Az eredeti kódod
-// $(document).ready(function() {
-//     const game = new Game('gameCanvas');
-//     game.drawMatrix();
-//
-//     // Kezelje a billentyűzet eseményeket
-//     $(document).keydown(function(e) {
-//         if (e.key === 'a' || e.key === 'd' || e.key === 'w') {
-//             game.movePlayer(e.key);
-//         }
-//     });
-// });
-
-// A módosított kód
 $(document).ready(function() {
     let game;
 
     $("#startButton").on("click", function() {
         startGame();
-        $("#gameContainer").show(); // Megjeleníti a canvas-t
-        $(this).parent().hide(); // Elrejti a gombot a kattintás után
+        $("#gameContainer").show();
+        $("#soundButton").show(); // Új sor a soundButton megjelenítéséhez
+        $(this).parent().hide();
     });
+
+    // Elrejti a soundButton-t a játék megkezdése előtt
+    $("#soundButton").hide();
 
     function startGame() {
         game = new Game('gameCanvas');
         game.drawMatrix();
-        game.backgroundMusic.play(); // Indítsa el a zene lejátszását
-    
+        game.backgroundMusic.play();
+
         // Kezelje a billentyűzet eseményeket
         $(document).keydown(function(e) {
             if (e.key === 'a' || e.key === 'd' || e.key === 'w') {
                 game.movePlayer(e.key);
             }
         });
+
+        // Új rész: a toggleSound függvényt a startGame függvényen belülre helyezve
+        $("#soundButton").on("click", function() {
+            toggleSound();
+        });
+
+        function toggleSound() {
+            if (game.backgroundMusic.paused) {
+                game.backgroundMusic.play();
+                $("#soundButton").attr("src", "img/sound.png");
+            } else {
+                game.backgroundMusic.pause();
+                $("#soundButton").attr("src", "img/nosound.png");
+            }
+        }
     }
-    
 });
+
 
 
