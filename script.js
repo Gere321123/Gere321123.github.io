@@ -186,7 +186,37 @@ placeTileBack() {
             const connectedTiles = this.countConnectedTiles(x, y, color, processed);
             return connectedTiles - 1; // Levonjuk az eredeti kockát, mivel azt nem számítjuk szomszédnak
         }
-    
+        moveFloatingTilesUp() {
+            const tileRows = Math.floor(this.canvas.height / this.tileSize);
+            const tileCols = Math.floor(this.canvas.width / this.tileSize);
+            let movedTiles = false;
+        
+            for (let y = tileRows - 1; y >= 1; y--) {
+                for (let x = 0; x < tileCols; x++) {
+                    const currentTileColor = this.ctx.getImageData(x * this.tileSize, y * this.tileSize, 1, 1).data;
+                    const isCurrentTileTransparent = currentTileColor[3] === 0;
+        
+                    if (!isCurrentTileTransparent) {
+                        let newY = y - 1;
+                        let tileAboveColor = this.ctx.getImageData(x * this.tileSize, newY * this.tileSize, 1, 1).data;
+                        let isTileAboveTransparent = tileAboveColor[3] === 0;
+        
+                        if (isTileAboveTransparent) {
+                            this.ctx.clearRect(x * this.tileSize, y * this.tileSize, this.tileSize, this.tileSize);
+                            this.ctx.fillStyle = `rgba(${currentTileColor[0]}, ${currentTileColor[1]}, ${currentTileColor[2]}, 1)`;
+                            this.ctx.fillRect(x * this.tileSize, newY * this.tileSize, this.tileSize, this.tileSize);
+                            movedTiles = true;
+                        }
+                    }
+                }
+            }
+        
+            if (movedTiles) {
+                this.moveFloatingTilesUp();
+            }
+        }
+        
+        
         placeTileBack() {
             const colIndex = Math.floor(this.playerX / this.tileSize);
             let y = this.playerY - 2 * this.tileSize;
@@ -223,6 +253,7 @@ placeTileBack() {
                 for (const tile of processed) {
                     this.ctx.clearRect(tile.x, tile.y, this.tileSize, this.tileSize);
                 }
+                this.moveFloatingTilesUp(); // Új sor a lebegő kockák kezeléséhez
             }
         
             this.selectedTile = null;
