@@ -6,6 +6,8 @@ class Game {
         this.colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00'];
         this.setCanvasSize();
         this.loadPlayerImage();
+        this.loadAudio();
+        this.loadBackgroundMusic();
         this.playerX = 0;
         this.playerY = this.canvas.height - this.tileSize;
         this.selectedTile = null;
@@ -16,7 +18,17 @@ class Game {
         this.canvas.width = 500;
         this.canvas.height = 500;
     }
-
+    // Töltse be a song.mp3 hangot
+loadBackgroundMusic() {
+    this.backgroundMusic = new Audio();
+    this.backgroundMusic.src = 'sound/song.mp3';
+    this.backgroundMusic.loop = true; // A zene ismétlődik, ha véget ér
+}
+  // Töltse be a puf.mp3 hangot
+  loadAudio() {
+    this.pufSound = new Audio();
+    this.pufSound.src = 'sound/puf2.mp3';
+}
     // Töltse be a játékos képét
     loadPlayerImage() {
         this.playerImage = new Image();
@@ -94,36 +106,6 @@ movePlayer(keyCode) {
     this.ctx.drawImage(this.playerImage, this.playerX, this.playerY, this.tileSize, this.tileSize);
 }
 
-placeTileBack() {
-    const colIndex = Math.floor(this.playerX / this.tileSize);
-    let y = this.playerY - 2 * this.tileSize;
-    let foundTile = false;
-
-    for (; y >= 0; y -= this.tileSize) {
-        const tileColor = this.ctx.getImageData(colIndex * this.tileSize, y, 1, 1).data;
-        const isTransparent = tileColor[3] === 0;
-
-        if (!isTransparent) {
-            foundTile = true;
-            break;
-        }
-    }
-
-    if (foundTile) {
-        this.ctx.putImageData(
-            this.ctx.getImageData(this.selectedTile.x, this.selectedTile.y, this.tileSize, this.tileSize),
-            colIndex * this.tileSize,
-            y + this.tileSize
-        );
-    } else {
-        this.ctx.putImageData(
-            this.ctx.getImageData(this.selectedTile.x, this.selectedTile.y, this.tileSize, this.tileSize),
-            colIndex * this.tileSize,
-            0
-        );
-    }
-    this.selectedTile = null;
-} 
     
         // Válassza ki a legközelebbi nem átlátszó kockát a játékos Y koordinátájában
         selectTile() {
@@ -254,7 +236,12 @@ placeTileBack() {
                     this.ctx.clearRect(tile.x, tile.y, this.tileSize, this.tileSize);
                 }
                 this.moveFloatingTilesUp(); // Új sor a lebegő kockák kezeléséhez
+                
+                // Lejátssza a puf.mp3 hangot
+                this.pufSound.currentTime = 0;
+                this.pufSound.play();
             }
+    
         
             this.selectedTile = null;
         }
@@ -268,14 +255,42 @@ placeTileBack() {
             }
         }
 }
-$(document).ready(function() {
-    const game = new Game('gameCanvas');
-    game.drawMatrix();
+// Az eredeti kódod
+// $(document).ready(function() {
+//     const game = new Game('gameCanvas');
+//     game.drawMatrix();
+//
+//     // Kezelje a billentyűzet eseményeket
+//     $(document).keydown(function(e) {
+//         if (e.key === 'a' || e.key === 'd' || e.key === 'w') {
+//             game.movePlayer(e.key);
+//         }
+//     });
+// });
 
-    // Kezelje a billentyűzet eseményeket
-    $(document).keydown(function(e) {
-        if (e.key === 'a' || e.key === 'd' || e.key === 'w') {
-            game.movePlayer(e.key);
-        }
+// A módosított kód
+$(document).ready(function() {
+    let game;
+
+    $("#startButton").on("click", function() {
+        startGame();
+        $("#gameContainer").show(); // Megjeleníti a canvas-t
+        $(this).parent().hide(); // Elrejti a gombot a kattintás után
     });
+
+    function startGame() {
+        game = new Game('gameCanvas');
+        game.drawMatrix();
+        game.backgroundMusic.play(); // Indítsa el a zene lejátszását
+    
+        // Kezelje a billentyűzet eseményeket
+        $(document).keydown(function(e) {
+            if (e.key === 'a' || e.key === 'd' || e.key === 'w') {
+                game.movePlayer(e.key);
+            }
+        });
+    }
+    
 });
+
+

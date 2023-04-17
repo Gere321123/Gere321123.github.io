@@ -10,7 +10,12 @@
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 </head>
 <body>
-    <canvas id="gameCanvas"></canvas>
+    <div id="gameContainer" style="display: none;"> <!-- Elrejtjük a canvas-t -->
+        <canvas id="gameCanvas"></canvas>
+    </div>
+    <div id="buttonContainer"> <!-- Szülő elem hozzáadása -->
+        <button id="startButton">Start</button>
+    </div>
     <script src="script.js"></script>
 </body>
 </html>
