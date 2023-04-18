@@ -38,6 +38,36 @@ body, html {
     z-index: 10;
     cursor: pointer;
 }
+.red-line {
+    width: 0;
+    height: 5px;
+    background-color: red;
+    position: absolute;
+    top: 0;
+    left: 0;
+    animation: moveRedLine 5s linear infinite;
+}
+
+@keyframes moveRedLine {
+    0% {
+        width: 0;
+        left: 0;
+    }
+    100% {
+        width: 100%;
+        left: 0;
+    }
+}
+#scoreDisplay {
+    display: none; /* Hozzáadva */
+    font-size: 24px;
+    font-family: Arial, sans-serif;
+    color: #333;
+    background-color: #fff;
+    padding: 10px 20px;
+    border-radius: 5px;
+    box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16), 0 3px 6px rgba(0, 0, 0, 0.23);
+}
 #startButton {
     background-color: #4CAF50;
     border: none;

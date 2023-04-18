@@ -11,6 +11,7 @@ class Game {
         this.playerX = 0;
         this.playerY = this.canvas.height - this.tileSize;
         this.selectedTile = null;
+        this.score = 0;
     }
 
     // Állítsa be a vászon méretét
@@ -38,7 +39,18 @@ loadBackgroundMusic() {
             this.ctx.drawImage(this.playerImage, this.playerX, this.playerY, this.tileSize, this.tileSize);
         };
     }
-
+    isGameOver() {
+        const tileCols = Math.floor(this.canvas.width / this.tileSize);
+        for (let x = 0; x < tileCols; x++) {
+            const tileColor = this.ctx.getImageData(x * this.tileSize, 420, 1, 1).data;
+            const isTransparent = tileColor[3] === 0;
+            if (!isTransparent) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
 
     // Véletlenszerűen válasszon egy színt a színlistából
     randomColor() {
@@ -197,6 +209,40 @@ movePlayer(keyCode) {
                 this.moveFloatingTilesUp();
             }
         }
+// Frissíti a mátrixot úgy, hogy minden kockát lejebb rak, kivéve a kiválasztottat, majd hozzáad egy új sort
+updateMatrix() {
+    const tileRows = Math.floor(this.canvas.height / this.tileSize);
+    const tileCols = Math.floor(this.canvas.width / this.tileSize);
+    
+    // Minden kocka lejebb kerül (kivéve a kiválasztottat)
+    for (let y = tileRows - 2; y >= 0; y--) {
+        for (let x = 0; x < tileCols; x++) {
+            const tileColor = this.ctx.getImageData(x * this.tileSize, y * this.tileSize, 1, 1).data;
+            const isTransparent = tileColor[3] === 0;
+            
+            // Kiválasztott kocka ellenőrzése
+            if (this.selectedTile !== null && this.selectedTile.x === x * this.tileSize && this.selectedTile.y === y * this.tileSize) {
+                continue;
+            }
+            
+            // Ha nem átlátszó, másolja a kockát
+            if (!isTransparent) {
+                this.ctx.fillStyle = `rgba(${tileColor[0]}, ${tileColor[1]}, ${tileColor[2]}, 1)`;
+                this.ctx.fillRect(x * this.tileSize, (y + 1) * this.tileSize, this.tileSize, this.tileSize);
+            }
+            
+            // Törli a régi kockát
+            this.ctx.clearRect(x * this.tileSize, y * this.tileSize, this.tileSize, this.tileSize);
+        }
+    }
+    
+    // Hozzáad egy új sort az első pozícióban
+    for (let x = 0; x < tileCols; x++) {
+        this.ctx.fillStyle = this.randomColor();
+        this.ctx.fillRect(x * this.tileSize, 0, this.tileSize, this.tileSize);
+    }
+}
+
         
         
         placeTileBack() {
@@ -240,13 +286,18 @@ movePlayer(keyCode) {
                 // Lejátssza a puf.mp3 hangot
                 this.pufSound.currentTime = 0;
                 this.pufSound.play();
+                this.score += processed.length; // Increment score by the number of cleared tiles
+                console.log("Score:", this.score);
+                this.updateScoreDisplay(); // Update the score display
             }
     
         
             this.selectedTile = null;
         }
     
-        
+        updateScoreDisplay() {
+            $("#scoreDisplay").text("Score: " + this.score);
+        }
         // Új metódus a kiválasztott kocka másolatának létrehozásához
         copySelectedTile(tile) {
             if (tile !== null) {
@@ -258,14 +309,21 @@ movePlayer(keyCode) {
 $(document).ready(function() {
     let game;
 
+    // Elrejti a piros csíkot a játék megkezdése előtt
+    $(".red-line").hide();
+    $("#scoreDisplay").hide(); // Hozzáadva
+
     $("#startButton").on("click", function() {
         startGame();
         $("#gameContainer").show();
-        $("#soundButton").show(); // Új sor a soundButton megjelenítéséhez
+        $("#soundButton").show();
         $(this).parent().hide();
+
+        // Megjeleníti a piros csíkot a játék elindításakor
+        $(".red-line").show();
+        $("#scoreDisplay").show();
     });
 
-    // Elrejti a soundButton-t a játék megkezdése előtt
     $("#soundButton").hide();
 
     function startGame() {
@@ -273,14 +331,12 @@ $(document).ready(function() {
         game.drawMatrix();
         game.backgroundMusic.play();
 
-        // Kezelje a billentyűzet eseményeket
         $(document).keydown(function(e) {
             if (e.key === 'a' || e.key === 'd' || e.key === 'w') {
                 game.movePlayer(e.key);
             }
         });
 
-        // Új rész: a toggleSound függvényt a startGame függvényen belülre helyezve
         $("#soundButton").on("click", function() {
             toggleSound();
         });
@@ -294,8 +350,23 @@ $(document).ready(function() {
                 $("#soundButton").attr("src", "img/nosound.png");
             }
         }
+        setInterval(function() {
+            game.updateMatrix();
+        }, 5000);
+        setInterval(function() {
+            game.updateMatrix();
+            if (game.isGameOver()) {
+                gameOver();
+            }
+        }, 5000);
+    }
+    function gameOver() {
+        game.backgroundMusic.pause();
+        alert("Game Over! Your final score is: " + game.score);
+        location.reload(); // Újratölti az oldalt, hogy újra elkezdhesse a játékot
     }
 });
+
 
 
 
